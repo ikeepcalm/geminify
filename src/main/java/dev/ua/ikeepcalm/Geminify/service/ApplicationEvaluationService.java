@@ -126,7 +126,6 @@ public class ApplicationEvaluationService {
                 
                 APPLICATION ANSWERS:
                 Server Source: "%s"
-                Quiz Answer: "%s"
                 
                 SURVIVAL SECTION (Wiped server for casual play):
                 Russian Word Reaction: "%s"
@@ -145,18 +144,14 @@ public class ApplicationEvaluationService {
                 Private Server Experience: "%s"
                 
                 Application has two sections: Survival and Evervault. Each section has its own questions, so when evaluating, consider that if some answers are not provided, it may be due to the applicant not filling out that section. This is normal and should not be considered a negative factor.
-                Main section applicable to both: age, launcher, server source, version.
-                Survival section: russian word reaction, admin decision attitude, conflict reaction, new rule attitude, negative server experience, useful skills.
-                Evervault section: community projects readiness, healthy community definition, ideal server description, long project experience, private server experience.
-                
                 Evervault is the server without wipes, where players can build and create long-term projects. Survival is the server with wipes, where players can play in a more casual way. Some answers may signal that the applicant is more suitable for one server type than the other, but this is not a strict requirement. You can recommend them for both servers if they meet the criteria, or for one if they are more suitable for it.
+                The server is Ukrainian, from ukrainians and for ukrainians, the russians and russian language are not tolerated here. We prioritize intelligent players, which will not be a heavy burden for the project development.
                 
                 Focus on answer quality, punctuation, maturity level matching stated age, and genuine interest. Make sure the answers are made by human, not generated via LLM. The reasoning in the response must be in Ukrainian language.
                 """, age, 
                 app.getLauncher(), 
                 truncate(app.getVersion()),
-                truncate(app.getServerSource()), 
-                truncate(app.getQuizAnswer()),
+                truncate(app.getServerSource()),
                 truncate(app.getRussianWordReaction()),
                 truncate(app.getAdminDecisionAttitude()),
                 truncate(app.getConflictReaction()),
