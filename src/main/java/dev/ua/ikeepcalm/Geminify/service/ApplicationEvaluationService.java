@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.ua.ikeepcalm.Geminify.dto.ApplicationDTO;
 import dev.ua.ikeepcalm.Geminify.dto.EvaluationResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class ApplicationEvaluationService {
 
+    private static final Logger log = LoggerFactory.getLogger(ApplicationEvaluationService.class);
+    
     private final WebClient webClient;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
@@ -157,29 +161,32 @@ public class ApplicationEvaluationService {
 
     private EvaluationResponse parseGeminiResponse(String response) {
         try {
+            log.info("Raw Gemini API Response: {}", response);
             JsonNode root = objectMapper.readTree(response);
-            System.out.println("Gemini API Response: " + response);
             
             JsonNode content = root.path("candidates").get(0).path("content").path("parts").get(0).path("text");
             String aiResponse = content.asText();
-            System.out.println("Extracted AI Response: " + aiResponse);
+            log.info("Extracted AI Response: {}", aiResponse);
             
             if (aiResponse.isEmpty()) {
+                log.warn("Empty AI response from Gemini API");
                 return new EvaluationResponse("DECLINE", "Empty AI response", 0.5, false);
             }
             
             JsonNode parsed = objectMapper.readTree(aiResponse);
-            return new EvaluationResponse(
+            EvaluationResponse result = new EvaluationResponse(
                 parsed.path("recommendation").asText("DECLINE"),
                 parsed.path("reasoning").asText("Failed to parse AI response"),
                 parsed.path("confidence").asDouble(0.5),
                 false
             );
+            log.info("Parsed evaluation result: {}", result);
+            return result;
         } catch (JsonProcessingException e) {
-            System.err.println("JSON parsing error: " + e.getMessage());
+            log.error("JSON parsing error: {}", e.getMessage());
             return new EvaluationResponse("DECLINE", "AI response parsing failed", 0.5, false);
         } catch (Exception e) {
-            System.err.println("General parsing error: " + e.getMessage());
+            log.error("General parsing error: {}", e.getMessage(), e);
             return new EvaluationResponse("DECLINE", "AI response parsing failed", 0.5, false);
         }
     }
