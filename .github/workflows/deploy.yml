@@ -32,8 +32,8 @@ jobs:
             # Build the project
             ./gradlew build -x test
             
-            # Build Docker image
-            docker build -t geminify:latest .
+            # Build Docker image (force rebuild)
+            docker build --no-cache -t geminify:latest .
             
             # Clean up unused Docker resources
             docker system prune -f

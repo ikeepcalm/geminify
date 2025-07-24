@@ -45,11 +45,13 @@ public class ApplicationEvaluationService {
     }
 
     public Mono<EvaluationResponse> evaluateApplication(ApplicationDTO application, boolean forceRefresh) {
+        log.info("Starting evaluation for application ID: {}, forceRefresh: {}", application.getId(), forceRefresh);
         String cacheKey = CACHE_PREFIX + application.getId();
 
         if (!forceRefresh) {
             EvaluationResponse cached = (EvaluationResponse) redisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
+                log.info("Found cached result for application: {}", application.getId());
                 cached.setCached(true);
                 return Mono.just(cached);
             }
@@ -57,10 +59,12 @@ public class ApplicationEvaluationService {
 
         EvaluationResponse quickReject = performQuickValidation(application);
         if (quickReject != null) {
+            log.info("Quick validation rejected application: {}", quickReject.getReasoning());
             cacheResult(cacheKey, quickReject);
             return Mono.just(quickReject);
         }
 
+        log.info("Proceeding with AI evaluation for application: {}", application.getId());
         return evaluateWithAI(application).map(response -> {
             log.info("Response from LLM: {}", response);
             cacheResult(cacheKey, response);
