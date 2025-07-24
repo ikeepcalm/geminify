@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 public class ApplicationEvaluationService {
 
     private static final Logger log = LoggerFactory.getLogger(ApplicationEvaluationService.class);
-    
+
     private final WebClient webClient;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
@@ -34,7 +34,7 @@ public class ApplicationEvaluationService {
     @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent}")
     private String geminiApiUrl;
 
-    private static final List<String> BANNED_LAUNCHERS = Arrays.asList("tlauncher", "klauncher");
+    private static final List<String> BANNED_LAUNCHERS = Arrays.asList("tlauncher", "klauncher", "tlegacy");
     private static final int MIN_AGE = 14;
     private static final String CACHE_PREFIX = "eval:";
 
@@ -46,7 +46,7 @@ public class ApplicationEvaluationService {
 
     public Mono<EvaluationResponse> evaluateApplication(ApplicationDTO application, boolean forceRefresh) {
         String cacheKey = CACHE_PREFIX + application.getId();
-        
+
         if (!forceRefresh) {
             EvaluationResponse cached = (EvaluationResponse) redisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
@@ -89,20 +89,20 @@ public class ApplicationEvaluationService {
 
     private Mono<EvaluationResponse> evaluateWithAI(ApplicationDTO application) {
         String prompt = buildEvaluationPrompt(application);
-        
+
         String requestBody = String.format("""
-            {
-                "contents": [{
-                    "parts": [{
-                        "text": "%s"
-                    }]
-                }],
-                "generationConfig": {
-                    "temperature": 0.1,
-                    "maxOutputTokens": 500
+                {
+                    "contents": [{
+                        "parts": [{
+                            "text": "%s"
+                        }]
+                    }],
+                    "generationConfig": {
+                        "temperature": 0.1,
+                        "maxOutputTokens": 500
+                    }
                 }
-            }
-            """, prompt.replace("\"", "\\\"").replace("\n", "\\n"));
+                """, prompt.replace("\"", "\\\"").replace("\n", "\\n"));
 
         return webClient.post()
                 .uri(geminiApiUrl + "?key=" + geminiApiKey)
@@ -114,43 +114,43 @@ public class ApplicationEvaluationService {
     }
 
     private String buildEvaluationPrompt(ApplicationDTO app) {
-        int age = app.getBirthDate() != null ? 
-            Period.between(app.getBirthDate().toLocalDate(), LocalDateTime.now().toLocalDate()).getYears() : -1;
+        int age = app.getBirthDate() != null ?
+                Period.between(app.getBirthDate().toLocalDate(), LocalDateTime.now().toLocalDate()).getYears() : -1;
 
         return String.format("""
-            Evaluate this Minecraft server application. Respond ONLY with JSON format: {"recommendation": "ACCEPT|DECLINE", "reasoning": "brief explanation", "confidence": 0.0-1.0}
-
-            CRITERIA:
-            - Age %d (14+ required, older preferred for adult community)
-            - Launcher: %s (Russian launchers auto-decline)
-            - Answers must be detailed, well-punctuated, genuine, show interest
-            - Poor punctuation = auto-decline (no capitals, commas, periods)
-            - Age should correlate with answer maturity
-
-            APPLICATION ANSWERS:
-            Community Projects: "%s"
-            Quiz Answer: "%s"
-            Server Source: "%s"
-            Conflict Reaction: "%s"
-            Server Experience: "%s"
-            Community Definition: "%s"
-            Ideal Server: "%s"
-            Project Experience: "%s"
-            Skills: "%s"
-
-            Focus on answer quality, punctuation, maturity level matching stated age, and genuine interest.
-            """, 
-            age, 
-            app.getLauncher(),
-            truncate(app.getCommunityProjectsReadiness()),
-            truncate(app.getQuizAnswer()),
-            truncate(app.getServerSource()),
-            truncate(app.getConflictReaction()),
-            truncate(app.getPrivateServerExperience()),
-            truncate(app.getHealthyCommunityDefinition()),
-            truncate(app.getIdealServerDescription()),
-            truncate(app.getLongProjectExperience()),
-            truncate(app.getUsefulSkills())
+                        Evaluate this Minecraft server application. Respond ONLY with JSON format: {"recommendation": "ACCEPT|DECLINE", "reasoning": "brief explanation", "confidence": 0.0-1.0}
+                        
+                        CRITERIA:
+                        - Age %d (14+ required, older preferred for adult community)
+                        - Launcher: %s (Russian launchers auto-decline)
+                        - Answers must be detailed, well-punctuated, genuine, show interest
+                        - Poor punctuation = auto-decline (no capitals, commas, periods)
+                        - Age should correlate with answer maturity
+                        
+                        APPLICATION ANSWERS:
+                        Community Projects: "%s"
+                        Quiz Answer: "%s"
+                        Server Source: "%s"
+                        Conflict Reaction: "%s"
+                        Server Experience: "%s"
+                        Community Definition: "%s"
+                        Ideal Server: "%s"
+                        Project Experience: "%s"
+                        Skills: "%s"
+                        
+                        Focus on answer quality, punctuation, maturity level matching stated age, and genuine interest.
+                        """,
+                age,
+                app.getLauncher(),
+                truncate(app.getCommunityProjectsReadiness()),
+                truncate(app.getQuizAnswer()),
+                truncate(app.getServerSource()),
+                truncate(app.getConflictReaction()),
+                truncate(app.getPrivateServerExperience()),
+                truncate(app.getHealthyCommunityDefinition()),
+                truncate(app.getIdealServerDescription()),
+                truncate(app.getLongProjectExperience()),
+                truncate(app.getUsefulSkills())
         );
     }
 
@@ -163,31 +163,31 @@ public class ApplicationEvaluationService {
         try {
             log.info("Raw Gemini API Response: {}", response);
             JsonNode root = objectMapper.readTree(response);
-            
+
             JsonNode content = root.path("candidates").get(0).path("content").path("parts").get(0).path("text");
             String aiResponse = content.asText();
             log.info("Extracted AI Response: {}", aiResponse);
-            
+
             if (aiResponse.isEmpty()) {
                 log.warn("Empty AI response from Gemini API");
                 return new EvaluationResponse("DECLINE", "Empty AI response", 0.5, false);
             }
-            
+
             JsonNode parsed = objectMapper.readTree(aiResponse);
             EvaluationResponse result = new EvaluationResponse(
-                parsed.path("recommendation").asText("DECLINE"),
-                parsed.path("reasoning").asText("Failed to parse AI response"),
-                parsed.path("confidence").asDouble(0.5),
-                false
+                    parsed.path("recommendation").asText("DECLINE"),
+                    parsed.path("reasoning").asText("Failed to parse AI response"),
+                    parsed.path("confidence").asDouble(0.5),
+                    false
             );
             log.info("Parsed evaluation result: {}", result);
             return result;
         } catch (JsonProcessingException e) {
             log.error("JSON parsing error: {}", e.getMessage());
-            return new EvaluationResponse("DECLINE", "AI response parsing failed", 0.5, false);
+            return new EvaluationResponse("DECLINE", "AI response parsing failed: {" + e.getMessage() + "}", 0.5, false);
         } catch (Exception e) {
             log.error("General parsing error: {}", e.getMessage(), e);
-            return new EvaluationResponse("DECLINE", "AI response parsing failed", 0.5, false);
+            return new EvaluationResponse("DECLINE", "AI response parsing failed: {" + e.getMessage() + "}", 0.5, false);
         }
     }
 
