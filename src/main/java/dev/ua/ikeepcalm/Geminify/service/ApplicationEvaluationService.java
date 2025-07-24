@@ -119,23 +119,56 @@ public class ApplicationEvaluationService {
                 CRITERIA:
                 - Age %d (14+ required, older preferred for adult community)
                 - Launcher: %s (Russian launchers auto-decline)
+                - Version: %s
                 - Answers must be detailed, well-punctuated, genuine, show interest
-                - Poor punctuation = auto-decline (no capitals, commas, periods)
+                - Poor punctuation = most probably auto-decline (no capitals, commas, periods)
                 - Age should correlate with answer maturity
                 
                 APPLICATION ANSWERS:
-                Community Projects: "%s"
-                Quiz Answer: "%s"
                 Server Source: "%s"
+                Quiz Answer: "%s"
+                
+                SURVIVAL SECTION (Wiped server for casual play):
+                Russian Word Reaction: "%s"
+                Admin Decision Attitude: "%s"
                 Conflict Reaction: "%s"
-                Server Experience: "%s"
-                Community Definition: "%s"
-                Ideal Server: "%s"
-                Project Experience: "%s"
-                Skills: "%s"
+                New Rule Reaction: "%s"
+                Negative Server Experience: "%s"
+                Useful Skills: "%s"
+                Useful Skills Detailed: "%s"
+                
+                EVERVAULT SECTION (Permanent server for long-term projects):
+                Community Projects Readiness: "%s"
+                Healthy Community Definition: "%s"
+                Ideal Server Description: "%s"
+                Long Project Experience: "%s"
+                Private Server Experience: "%s"
+                
+                Application has two sections: Survival and Evervault. Each section has its own questions, so when evaluating, consider that if some answers are not provided, it may be due to the applicant not filling out that section. This is normal and should not be considered a negative factor.
+                Main section applicable to both: age, launcher, server source, version.
+                Survival section: russian word reaction, admin decision attitude, conflict reaction, new rule attitude, negative server experience, useful skills.
+                Evervault section: community projects readiness, healthy community definition, ideal server description, long project experience, private server experience.
+                
+                Evervault is the server without wipes, where players can build and create long-term projects. Survival is the server with wipes, where players can play in a more casual way. Some answers may signal that the applicant is more suitable for one server type than the other, but this is not a strict requirement. You can recommend them for both servers if they meet the criteria, or for one if they are more suitable for it.
                 
                 Focus on answer quality, punctuation, maturity level matching stated age, and genuine interest. Make sure the answers are made by human, not generated via LLM. The reasoning in the response must be in Ukrainian language.
-                """, age, app.getLauncher(), truncate(app.getCommunityProjectsReadiness()), truncate(app.getQuizAnswer()), truncate(app.getServerSource()), truncate(app.getConflictReaction()), truncate(app.getPrivateServerExperience()), truncate(app.getHealthyCommunityDefinition()), truncate(app.getIdealServerDescription()), truncate(app.getLongProjectExperience()), truncate(app.getUsefulSkills()));
+                """, age, 
+                app.getLauncher(), 
+                truncate(app.getVersion()),
+                truncate(app.getServerSource()), 
+                truncate(app.getQuizAnswer()),
+                truncate(app.getRussianWordReaction()),
+                truncate(app.getAdminDecisionAttitude()),
+                truncate(app.getConflictReaction()),
+                truncate(app.getNewRuleReaction()),
+                truncate(app.getServerExperienceNegative()),
+                truncate(app.getUsefulSkills()),
+                truncate(app.getUsefulSkillsDetailed()),
+                truncate(app.getCommunityProjectsReadiness()),
+                truncate(app.getHealthyCommunityDefinition()),
+                truncate(app.getIdealServerDescription()),
+                truncate(app.getLongProjectExperience()),
+                truncate(app.getPrivateServerExperience()));
     }
 
     private String truncate(String text) {
@@ -164,9 +197,6 @@ public class ApplicationEvaluationService {
     }
 
     private EvaluationResponse parseGeminiResponse(String response) {
-        System.out.println("=== DEBUG: Raw response length: " + response.length());
-        System.out.println("=== DEBUG: Raw response: " + response);
-
         try {
             log.info("Raw Gemini API Response: {}", response);
             JsonNode root = objectMapper.readTree(response);
@@ -188,11 +218,9 @@ public class ApplicationEvaluationService {
             log.info("Parsed evaluation result: {}", result);
             return result;
         } catch (JsonProcessingException e) {
-            System.out.println("=== DEBUG: Exception: " + e.getMessage());
             log.error("JSON parsing error: {}", e.getMessage());
             return new EvaluationResponse("DECLINE", "AI response parsing failed - [" + e.getMessage() + "]", 0.5, false);
         } catch (Exception e) {
-            System.out.println("=== DEBUG: Exception: " + e.getMessage());
             log.error("General parsing error: {}", e.getMessage(), e);
             return new EvaluationResponse("DECLINE", "AI response parsing failed - [" + e.getMessage() + "]", 0.5, false);
         }

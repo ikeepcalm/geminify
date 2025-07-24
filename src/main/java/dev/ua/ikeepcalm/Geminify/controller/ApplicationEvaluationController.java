@@ -38,7 +38,6 @@ public class ApplicationEvaluationController {
             @RequestBody ApplicationDTO application,
             @Parameter(description = "Force refresh cached result")
             @RequestParam(defaultValue = "false") boolean refresh) {
-        System.out.println("=== DEBUG: Starting evaluation for app ID: " + application.getId());
         log.info("Starting evaluation for application ID: {}, forceRefresh: {}", application.getId(), refresh);
         return evaluationService.evaluateApplication(application, refresh)
                 .map(ResponseEntity::ok)
