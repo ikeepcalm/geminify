@@ -134,13 +134,33 @@ public class ApplicationEvaluationService {
                 Project Experience: "%s"
                 Skills: "%s"
                 
-                Focus on answer quality, punctuation, maturity level matching stated age, and genuine interest.
+                Focus on answer quality, punctuation, maturity level matching stated age, and genuine interest. Make sure the answers are made by human, not generated via LLM. The reasoning in the response must be in Ukrainian language.
                 """, age, app.getLauncher(), truncate(app.getCommunityProjectsReadiness()), truncate(app.getQuizAnswer()), truncate(app.getServerSource()), truncate(app.getConflictReaction()), truncate(app.getPrivateServerExperience()), truncate(app.getHealthyCommunityDefinition()), truncate(app.getIdealServerDescription()), truncate(app.getLongProjectExperience()), truncate(app.getUsefulSkills()));
     }
 
     private String truncate(String text) {
         if (text == null) return "Not provided";
         return text.length() > 200 ? text.substring(0, 200) + "..." : text;
+    }
+
+    private String cleanMarkdownJson(String response) {
+        if (response == null || response.trim().isEmpty()) {
+            return response;
+        }
+        
+        String cleaned = response.trim();
+        
+        if (cleaned.startsWith("```json")) {
+            cleaned = cleaned.substring(7);
+        } else if (cleaned.startsWith("```")) {
+            cleaned = cleaned.substring(3);
+        }
+        
+        if (cleaned.endsWith("```")) {
+            cleaned = cleaned.substring(0, cleaned.length() - 3);
+        }
+        
+        return cleaned.trim();
     }
 
     private EvaluationResponse parseGeminiResponse(String response) {
@@ -160,7 +180,10 @@ public class ApplicationEvaluationService {
                 return new EvaluationResponse("DECLINE", "Empty AI response", 0.5, false);
             }
 
-            JsonNode parsed = objectMapper.readTree(aiResponse);
+            String cleanedResponse = cleanMarkdownJson(aiResponse);
+            log.info("Cleaned AI Response: {}", cleanedResponse);
+
+            JsonNode parsed = objectMapper.readTree(cleanedResponse);
             EvaluationResponse result = new EvaluationResponse(parsed.path("recommendation").asText("DECLINE"), parsed.path("reasoning").asText("Failed to parse AI response"), parsed.path("confidence").asDouble(0.5), false);
             log.info("Parsed evaluation result: {}", result);
             return result;

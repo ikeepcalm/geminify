@@ -20,8 +20,8 @@ jobs:
           script: |
             cd ~/geminify
             
-            # Stop containers
-            docker compose down
+            # Stop containers and clean up
+            docker compose down --rmi all -v --remove-orphans
             
             # Pull latest changes
             git pull origin main
@@ -29,14 +29,17 @@ jobs:
             # Make gradlew executable
             chmod +x ./gradlew
             
+            # Clean Gradle cache and build
+            ./gradlew clean
+            
             # Build the project
             ./gradlew build -x test
             
             # Build Docker image (force rebuild)
             docker build --no-cache -t geminify:latest .
             
-            # Clean up unused Docker resources
-            docker system prune -f
+            # Clean up unused Docker resources (project-specific)
+            docker image prune -f --filter "label!=keep" --filter "dangling=true"
             
             # Start containers
             docker compose up -d
