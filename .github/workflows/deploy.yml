@@ -53,7 +53,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd ~/geminify
-            docker-compose down
+            docker compose down
             docker system prune -f
 
       - name: Copy files to VPS
@@ -74,5 +74,5 @@ jobs:
           script: |
             cd ~/geminify
             docker load < geminify.tar.gz
-            docker-compose up -d
-            docker-compose ps
+            docker compose up -d
+            docker compose ps
