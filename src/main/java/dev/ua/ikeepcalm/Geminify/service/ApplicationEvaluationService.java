@@ -144,6 +144,9 @@ public class ApplicationEvaluationService {
     }
 
     private EvaluationResponse parseGeminiResponse(String response) {
+        System.out.println("=== DEBUG: Raw response length: " + response.length());
+        System.out.println("=== DEBUG: Raw response: " + response);
+
         try {
             log.info("Raw Gemini API Response: {}", response);
             JsonNode root = objectMapper.readTree(response);
@@ -162,9 +165,11 @@ public class ApplicationEvaluationService {
             log.info("Parsed evaluation result: {}", result);
             return result;
         } catch (JsonProcessingException e) {
+            System.out.println("=== DEBUG: Exception: " + e.getMessage());
             log.error("JSON parsing error: {}", e.getMessage());
             return new EvaluationResponse("DECLINE", "AI response parsing failed - [" + e.getMessage() + "]", 0.5, false);
         } catch (Exception e) {
+            System.out.println("=== DEBUG: Exception: " + e.getMessage());
             log.error("General parsing error: {}", e.getMessage(), e);
             return new EvaluationResponse("DECLINE", "AI response parsing failed - [" + e.getMessage() + "]", 0.5, false);
         }

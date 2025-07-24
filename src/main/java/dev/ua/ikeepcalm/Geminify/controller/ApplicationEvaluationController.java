@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
@@ -18,6 +20,7 @@ import reactor.core.publisher.Mono;
 @Tag(name = "Application Evaluation", description = "AI-powered Minecraft server application evaluation")
 public class ApplicationEvaluationController {
 
+    private static final Logger log = LoggerFactory.getLogger(ApplicationEvaluationController.class);
     private final ApplicationEvaluationService evaluationService;
 
     public ApplicationEvaluationController(ApplicationEvaluationService evaluationService) {
@@ -35,7 +38,8 @@ public class ApplicationEvaluationController {
             @RequestBody ApplicationDTO application,
             @Parameter(description = "Force refresh cached result")
             @RequestParam(defaultValue = "false") boolean refresh) {
-
+        System.out.println("=== DEBUG: Starting evaluation for app ID: " + application.getId());
+        log.info("Starting evaluation for application ID: {}, forceRefresh: {}", application.getId(), refresh);
         return evaluationService.evaluateApplication(application, refresh)
                 .map(ResponseEntity::ok)
                 .onErrorReturn(ResponseEntity.internalServerError().build());
