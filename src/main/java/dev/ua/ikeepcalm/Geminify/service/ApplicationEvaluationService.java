@@ -76,14 +76,14 @@ public class ApplicationEvaluationService {
         if (application.getBirthDate() != null) {
             int age = Period.between(application.getBirthDate().toLocalDate(), LocalDateTime.now().toLocalDate()).getYears();
             if (age < MIN_AGE) {
-                return new EvaluationResponse("DECLINE", "Age below minimum requirement (" + age + " years)", 1.0, false);
+                return new EvaluationResponse("DECLINE", "Малий вік (має бути ПРИНАЙМНІ " + age + "+ років)", 1.0, false);
             }
         }
 
         if (application.getLauncher() != null) {
             String launcher = application.getLauncher().toLowerCase();
             if (BANNED_LAUNCHERS.stream().anyMatch(launcher::equalsIgnoreCase)) {
-                return new EvaluationResponse("DECLINE", "Using banned launcher: " + application.getLauncher(), 1.0, false);
+                return new EvaluationResponse("DECLINE", "Заборонений лаунчер, НЕ ЧИТАВ ПРАВИЛА: " + application.getLauncher(), 1.0, false);
             }
         }
 
@@ -101,8 +101,8 @@ public class ApplicationEvaluationService {
                         }]
                     }],
                     "generationConfig": {
-                        "temperature": 0.1,
-                        "maxOutputTokens": 500
+                        "temperature": 0.3,
+                        "maxOutputTokens": 1000
                     }
                 }
                 """, prompt.replace("\"", "\\\"").replace("\n", "\\n"));
@@ -114,56 +114,57 @@ public class ApplicationEvaluationService {
         int age = app.getBirthDate() != null ? Period.between(app.getBirthDate().toLocalDate(), LocalDateTime.now().toLocalDate()).getYears() : -1;
 
         return String.format("""
-                Evaluate this Minecraft server application. Respond ONLY with JSON format: {"recommendation": "ACCEPT|DECLINE", "reasoning": "brief explanation", "confidence": 0.0-1.0}
-                
-                CRITERIA:
-                - Age %d (14+ required, older preferred for adult community)
-                - Launcher: %s (Russian launchers auto-decline)
-                - Version: %s
-                - Answers must be detailed, well-punctuated, genuine, show interest
-                - Poor punctuation = most probably auto-decline (no capitals, commas, periods)
-                - Age should correlate with answer maturity
-                
-                APPLICATION ANSWERS:
-                Server Source: "%s"
-                
-                SURVIVAL SECTION (Wiped server for casual play):
-                Russian Word Reaction: "%s"
-                Admin Decision Attitude: "%s"
-                Conflict Reaction: "%s"
-                New Rule Reaction: "%s"
-                Negative Server Experience: "%s"
-                Useful Skills: "%s"
-                Useful Skills Detailed: "%s"
-                
-                EVERVAULT SECTION (Permanent server for long-term projects):
-                Community Projects Readiness: "%s"
-                Healthy Community Definition: "%s"
-                Ideal Server Description: "%s"
-                Long Project Experience: "%s"
-                Private Server Experience: "%s"
-                
-                Application has two sections: Survival and Evervault. Each section has its own questions, so when evaluating, consider that if some answers are not provided, it may be due to the applicant not filling out that section. This is normal and should not be considered a negative factor.
-                Evervault is the server without wipes, where players can build and create long-term projects. Survival is the server with wipes, where players can play in a more casual way. Some answers may signal that the applicant is more suitable for one server type than the other, but this is not a strict requirement. You can recommend them for both servers if they meet the criteria, or for one if they are more suitable for it.
-                The server is Ukrainian, from ukrainians and for ukrainians, the russians and russian language are not tolerated here. We prioritize intelligent players, which will not be a heavy burden for the project development.
-                
-                Focus on answer quality, punctuation, maturity level matching stated age, and genuine interest. Make sure the answers are made by human, not generated via LLM. The reasoning in the response must be in Ukrainian language.
-                """, age, 
-                app.getLauncher(), 
+                        Evaluate this Minecraft server application. Respond ONLY with a valid JSON object. No text or explanation outside of it.
+                        
+                        {"recommendation": "ACCEPT" | "DECLINE", "reasoning": "short explanation in Ukrainian", "confidence": 0.0-1.0}
+                        
+                        CRITERIA:
+                        - Age: %d (Minimum 14; older age preferred for adult community. Maturity of answers must align with claimed age.)
+                        - Launcher: %s (Russian-branded launchers or pirated versions lead to DECLINE.)
+                        - Version: %s
+                        - Answers must be human-written, detailed, well-punctuated, and show genuine interest.
+                        - Poor punctuation (lack of capitalization, commas, periods) suggests lower effort or possible AI use.
+                        - Do not penalize applicants for skipping entire sections (Survival or Evervault); they may be interested only in one server mode.
+                        - Application may include typos or mixed Ukrainian/Russian words — do not auto-decline unless clear disrespect or consistent Russian usage is evident.
+                        - Server is Ukrainian-only: applicants must support a Ukrainian-speaking, respectful, intelligent community. Occasional language slips are not enough for rejection.
+                        
+                        SECTIONS (Some may be empty — that’s acceptable):
+                        
+                        Server Source: "%s"
+                        
+                        SURVIVAL SECTION:
+                        - Russian Word Reaction: "%s"
+                        - Admin Decision Attitude: "%s"
+                        - New Rule Reaction: "%s"
+                        - Negative Server Experience: "%s"
+                        - Useful Skills Detailed: "%s"
+                        
+                        EVERVAULT SECTION:
+                        - Community Projects Readiness: "%s"
+                        - Healthy Community Definition: "%s"
+                        - Ideal Server Description: "%s"
+                        - Long Project Experience: "%s"
+                        
+                        NOTES FOR EVALUATION:
+                        - Survival is a casual, wipe-based experience.
+                        - Evervault is a permanent world for long-term builds.
+                        - Applicants may fit better in one mode than the other — recommend either or both.
+                        - Focus on evaluating maturity, community fit, and language. Reject only if major red flags exist (e.g. Russian propaganda, disrespect, fake answers).
+                        
+                        The reasoning must be written in Ukrainian. Do not over-rely on the presence of Russian words unless clearly inappropriate or politically charged.
+                        """, age,
+                app.getLauncher(),
                 truncate(app.getVersion()),
                 truncate(app.getServerSource()),
                 truncate(app.getRussianWordReaction()),
                 truncate(app.getAdminDecisionAttitude()),
-                truncate(app.getConflictReaction()),
                 truncate(app.getNewRuleReaction()),
                 truncate(app.getServerExperienceNegative()),
-                truncate(app.getUsefulSkills()),
                 truncate(app.getUsefulSkillsDetailed()),
                 truncate(app.getCommunityProjectsReadiness()),
                 truncate(app.getHealthyCommunityDefinition()),
                 truncate(app.getIdealServerDescription()),
-                truncate(app.getLongProjectExperience()),
-                truncate(app.getPrivateServerExperience()));
+                truncate(app.getLongProjectExperience()));
     }
 
     private String truncate(String text) {
@@ -175,19 +176,19 @@ public class ApplicationEvaluationService {
         if (response == null || response.trim().isEmpty()) {
             return response;
         }
-        
+
         String cleaned = response.trim();
-        
+
         if (cleaned.startsWith("```json")) {
             cleaned = cleaned.substring(7);
         } else if (cleaned.startsWith("```")) {
             cleaned = cleaned.substring(3);
         }
-        
+
         if (cleaned.endsWith("```")) {
             cleaned = cleaned.substring(0, cleaned.length() - 3);
         }
-        
+
         return cleaned.trim();
     }
 
